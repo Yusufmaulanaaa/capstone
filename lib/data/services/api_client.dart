@@ -27,24 +27,29 @@ class ApiClient {
     return h;
   }
 
-  Future<dynamic> get(String path, {Map<String, dynamic>? query, bool auth = true}) async {
-    final res = await _client.get(ApiConfig.uri(path, query), headers: await _headers(auth: auth)).timeout(const Duration(seconds: 20));
-    return _handle(res);
-  }
+  Future<dynamic> get(String path, {Map<String, dynamic>? query, bool auth = true}) async =>
+      _request(() async => _client.get(ApiConfig.uri(path, query), headers: await _headers(auth: auth)).timeout(const Duration(seconds: 20)), path);
 
-  Future<dynamic> post(String path, {Object? body, Map<String, dynamic>? query, bool auth = true}) async {
-    final res = await _client.post(ApiConfig.uri(path, query), headers: await _headers(auth: auth), body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 25));
-    return _handle(res);
-  }
+  Future<dynamic> post(String path, {Object? body, Map<String, dynamic>? query, bool auth = true}) async =>
+      _request(() async => _client.post(ApiConfig.uri(path, query), headers: await _headers(auth: auth), body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 25)), path);
 
-  Future<dynamic> patch(String path, {Object? body, bool auth = true}) async {
-    final res = await _client.patch(ApiConfig.uri(path), headers: await _headers(auth: auth), body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 20));
-    return _handle(res);
-  }
+  Future<dynamic> patch(String path, {Object? body, bool auth = true}) async =>
+      _request(() async => _client.patch(ApiConfig.uri(path), headers: await _headers(auth: auth), body: body == null ? null : jsonEncode(body)).timeout(const Duration(seconds: 20)), path);
 
-  Future<dynamic> delete(String path, {bool auth = true}) async {
-    final res = await _client.delete(ApiConfig.uri(path), headers: await _headers(auth: auth)).timeout(const Duration(seconds: 20));
-    return _handle(res);
+  Future<dynamic> delete(String path, {bool auth = true}) async =>
+      _request(() async => _client.delete(ApiConfig.uri(path), headers: await _headers(auth: auth)).timeout(const Duration(seconds: 20)), path);
+
+  Future<dynamic> _request(Future<http.Response> Function() call, String path) async {
+    try {
+      return _handle(await call());
+    } on ApiException {
+      rethrow;
+    } on TimeoutException {
+      throw ApiException('Server tidak merespons (${ApiConfig.baseUrl}). Pastikan backend berjalan.');
+    } catch (e) {
+      final detail = e.toString().replaceAll('Exception: ', '').trim();
+      throw ApiException('Tidak dapat terhubung ke server (${ApiConfig.baseUrl}). ${detail.isEmpty ? 'Pastikan backend berjalan.' : detail}');
+    }
   }
 
   dynamic _handle(http.Response res) {

@@ -36,8 +36,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) context.goNamed('home');
     } on ApiException catch (e) {
       _snack(e.message);
-    } catch (_) {
-      _snack('Tidak dapat terhubung ke server. Pastikan backend berjalan.');
+    } catch (e) {
+      _snack(e.toString().replaceAll('Exception: ', ''));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
