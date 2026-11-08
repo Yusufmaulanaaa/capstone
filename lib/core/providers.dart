@@ -172,33 +172,38 @@ final conversationsProvider =
   return ref.watch(chatApiProvider).conversations();
 });
 
-// Chat
+// Chat (in-memory per app session; survives navigation, cleared on logout/new chat)
 class ChatState {
   final List<ChatMessage> messages;
   final String? conversationId;
-  const ChatState({this.messages = const [], this.conversationId});
+  final bool restored;
+  const ChatState(
+      {this.messages = const [], this.conversationId, this.restored = false});
   ChatState copyWith(
           {List<ChatMessage>? messages,
           String? conversationId,
-          bool clearConversation = false}) =>
+          bool clearConversation = false,
+          bool? restored}) =>
       ChatState(
           messages: messages ?? this.messages,
           conversationId: clearConversation
               ? null
-              : (conversationId ?? this.conversationId));
+              : (conversationId ?? this.conversationId),
+          restored: restored ?? this.restored);
 }
 
 class ChatNotifier extends StateNotifier<ChatState> {
   ChatNotifier() : super(const ChatState());
   void setMessages(List<ChatMessage> msgs,
-          {String? conversationId, bool clearConversation = false}) =>
+          {String? conversationId, bool clearConversation = false, bool? restored}) =>
       state = state.copyWith(
           messages: msgs,
           conversationId: conversationId,
-          clearConversation: clearConversation);
+          clearConversation: clearConversation,
+          restored: restored);
   void addMessage(ChatMessage msg) =>
       state = state.copyWith(messages: [...state.messages, msg]);
-  void newConversation() => state = const ChatState();
+  void newConversation() => state = state.copyWith(messages: const [], clearConversation: true, restored: true);
 }
 
 final chatProvider =
