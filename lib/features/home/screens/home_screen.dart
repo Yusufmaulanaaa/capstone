@@ -85,7 +85,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             ),
                           ),
                           Text(
-                            'Bantuan hukum cepat & aman',
+                            'Bantuan hukum cepat',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: 12, color: C.gray),
@@ -126,7 +126,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         const Text(
                           'Ceritakan kasusmu,\nAI bantu langkah awal',
                           style: TextStyle(
-                            fontSize: 21,
+                            fontSize: 20,
                             fontWeight: FontWeight.w800,
                             color: C.white,
                             height: 1.2,

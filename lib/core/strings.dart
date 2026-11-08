@@ -2,14 +2,14 @@
 abstract final class AppStrings {
   // Onboarding
   static const appName = 'HukumIn';
-  static const onboardingLine1 = 'Tell AI Your Legal Issue,';
-  static const onboardingLine2 = 'Find the Right Lawyer.';
+  static const onboardingLine1 = 'Ceritakan Masalah Hukummu,';
+  static const onboardingLine2 = 'Temukan Pengacara Tepat.';
   static const onboardingSubtitle =
-      'AI analyzes your case and connects you\nwith the best legal expert.';
-  static const getStarted = 'Get Started';
+      'AI membantu analisis awal kasus dan\nmenghubungkanmu dengan ahli hukum.';
+  static const getStarted = 'Mulai';
 
   // Home
-  static const hiMike = 'Hi, Mike';
+  static const hiMike = 'Hai, Pengguna';
   static const whatLegalIssue = 'Apa ';
   static const legalIssue = 'kasus hukummu?';
   static const homeSubtitle =
@@ -20,14 +20,15 @@ abstract final class AppStrings {
 
   // Chat
   static const legalAI = 'Chatbot Hukum';
-  static const whatsNext = 'Tulis pertanyaan lanjutan...';
-  static const aiTyping = 'Legal AI is finding lawyers for you...';
+  static const whatsNext = 'Tulis pertanyaan atau ceritakan kasus...';
+  static const aiTyping = 'Asisten hukum sedang menyiapkan jawaban...';
   static const aiReply =
-      'Done! Here are the top-rated lawyers based on experience, reviews, and '
-      'availability. You can book a consultation in just a few taps.';
-  static const showMoreLawyers = 'Show more lawyers';
-  static const draftALetter = 'Draft a letter';
-  static const copied = 'Copied to clipboard';
+      'Baik, saya bantu analisis awal kasus Anda. Jelaskan kronologi singkat, '
+      'pihak terkait, dan bukti yang dimiliki. Anda juga bisa unggah dokumen '
+      'untuk diproses dengan fitur PCD (pengolahan citra).';
+  static const showMoreLawyers = 'Rekomendasi pengacara';
+  static const draftALetter = 'Buat ringkasan kasus';
+  static const copied = 'Tersalin ke clipboard';
 
   // Lawyer Profile
   static const profile = 'Profile';
@@ -62,12 +63,12 @@ abstract final class AppStrings {
   static const backToHome = 'Back to home';
 
   // Voice
-  static const listening = 'Listening…';
-  static const voiceSubtitle = 'Speak your legal issue clearly';
-  static const cancel = 'Cancel';
+  static const listening = 'Mendengarkan…';
+  static const voiceSubtitle = 'Ucapkan masalah hukum Anda dengan jelas';
+  static const cancel = 'Batal';
   static const voiceSample =
-      'I was wrongfully terminated after reporting workplace harassment. '
-      'I need to know my legal options.';
+      'Saya mengalami penipuan transaksi online. Saya sudah punya bukti chat '
+      'dan transfer, dan ingin tahu langkah hukum yang bisa saya ambil.';
 
   // Document
   static const aiLegalDocument = 'AI Legal Document';
@@ -92,5 +93,5 @@ abstract final class AppStrings {
   static const markAllRead = 'Mark all as read';
 
   // Misc
-  static const perHour = '/hr';
+  static const perHour = '/jam';
 }

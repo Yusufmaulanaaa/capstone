@@ -286,12 +286,12 @@ class _BookConsultationScreenState
                         ),
                         child: Column(children: [
                           _SummaryRow(
-                            label: 'Lawyer',
+                            label: 'Pengacara',
                             value: widget.lawyer.name,
                           ),
                           const SizedBox(height: 8),
                           _SummaryRow(
-                            label: 'Date',
+                            label: 'Tanggal',
                             value: _selectedDate != null
                                 ? DateFormat('EEEE, d MMMM')
                                     .format(_selectedDate!)
@@ -299,16 +299,16 @@ class _BookConsultationScreenState
                           ),
                           const SizedBox(height: 8),
                           _SummaryRow(
-                            label: 'Time',
+                            label: 'Waktu',
                             value: _selectedTime ?? '—',
                           ),
                           const SizedBox(height: 8),
                           _SummaryRow(
-                            label: 'Type',
+                            label: 'Tipe',
                             value: [
-                              'Video call',
-                              'Voice call',
-                              'In person',
+                              'Panggilan video',
+                              'Panggilan suara',
+                              'Tatap muka',
                             ][_type.index],
                           ),
                           const Padding(
@@ -317,7 +317,7 @@ class _BookConsultationScreenState
                           ),
                           _SummaryRow(
                             label: AppStrings.total,
-                            value: '€$_total',
+                            value: 'Rp${_total}rb',
                             bold: true,
                           ),
                         ]),

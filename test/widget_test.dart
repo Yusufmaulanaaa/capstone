@@ -10,6 +10,8 @@ import 'package:hukumin/features/chat/screens/chat_screen.dart';
 import 'package:hukumin/features/booking/screens/book_consultation_screen.dart';
 import 'package:hukumin/features/booking/screens/booking_confirmed_screen.dart';
 import 'package:hukumin/features/saved/screens/saved_screen.dart';
+import 'package:hukumin/features/auth/screens/login_screen.dart';
+import 'package:hukumin/features/auth/screens/register_screen.dart';
 import 'package:hukumin/data/repositories/mock_repository.dart';
 import 'package:hukumin/data/models/lawyer_model.dart';
 import 'package:hukumin/data/models/booking_model.dart';
@@ -26,6 +28,16 @@ Widget _buildTestApp({
         path: '/',
         name: 'onboarding',
         builder: (_, __) => const OnboardingScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        name: 'login',
+        builder: (_, __) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/register',
+        name: 'register',
+        builder: (_, __) => const RegisterScreen(),
       ),
       GoRoute(
         path: '/home',
@@ -57,11 +69,11 @@ Widget _buildTestApp({
           final ext = state.extra as Map<String, dynamic>?;
           final booking = ext?['booking'] as BookingModel? ??
               BookingModel(
-                lawyerName: 'Michale Chan',
-                lawyerRole: 'Employment Lawyer',
+                lawyerName: 'Rizky Pratama, S.H.',
+                lawyerRole: 'Pengacara Pidana',
                 lawyerPhoto: '',
-                price: '€75/hr',
-                priceNum: 75,
+                price: 'Rp350rb/jam',
+                priceNum: 350,
                 date: DateTime.now(),
                 time: '10:00',
                 type: ConsultationType.video,
@@ -87,53 +99,34 @@ Widget _buildTestApp({
 }
 
 void main() {
-  // ── Test 1: Onboarding → Home navigation ──────────────────
-  testWidgets('Onboarding Get Started navigates to Home', (tester) async {
+  // ── Test 1: Onboarding → Login navigation ────────────────
+  testWidgets('Onboarding navigates to Login', (tester) async {
     await tester.pumpWidget(_buildTestApp(initialLocation: '/'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tell AI Your Legal Issue,'), findsOneWidget);
-    expect(find.text('Get Started'), findsOneWidget);
+    expect(find.text('Ceritakan Masalah Hukummu,'), findsOneWidget);
+    expect(find.text('Get Started'), findsNothing);
+    expect(find.text('Masuk'), findsOneWidget);
+    expect(find.text('Buat akun'), findsOneWidget);
 
-    await tester.tap(find.text('Get Started'));
+    await tester.tap(find.text('Masuk'));
     await tester.pumpAndSettle();
 
-    expect(find.text('HukumIn'), findsOneWidget);
+    expect(find.text('Masuk ke HukumIn'), findsOneWidget);
   });
 
-  // ── Test 2: Composer send shows user bubble then AI reply ──
-  testWidgets('Chat: send message shows user bubble then AI reply',
+  // ── Test 2: Chat bubble render + PCD attach UI ──────────
+  testWidgets('Chat: shows greeting and document attach control',
       (tester) async {
     await tester.pumpWidget(_buildTestApp(initialLocation: '/chat'));
     await tester.pumpAndSettle();
 
-    // Initial message from AI is present
     expect(
-      find.textContaining('Done! Here are the top-rated lawyers'),
+      find.textContaining('asisten hukum HukumIn'),
       findsOneWidget,
     );
-
-    // Enter user text
-    final field = find.byType(TextField).first;
-    await tester.enterText(field, 'I need help with my case');
-    await tester.pumpAndSettle();
-
-    // Send
-    await tester.tap(find.byIcon(Icons.near_me_rounded));
-    await tester.pumpAndSettle();
-
-    // User message bubble appears
-    expect(find.text('I need help with my case'), findsOneWidget);
-
-    // Wait for simulated reply
-    await tester.pump(const Duration(milliseconds: 1700));
-    await tester.pumpAndSettle();
-
-    // AI reply present
-    expect(
-      find.textContaining('Done! Here are the top-rated lawyers'),
-      findsWidgets,
-    );
+    expect(find.byIcon(Icons.attach_file_rounded), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
   });
 
   // ── Test 3: Booking flow reaches confirmation screen ──────

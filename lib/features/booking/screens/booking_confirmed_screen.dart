@@ -66,7 +66,7 @@ class BookingConfirmedScreen extends StatelessWidget {
                         onTap: () {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Added to calendar'),
+                              content: Text('Ditambahkan ke kalender (simulasi)'),
                               backgroundColor: C.ink,
                               behavior: SnackBarBehavior.floating,
                             ),

@@ -77,9 +77,25 @@ class OnboardingScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
                         BlackButton(
-                          label: AppStrings.getStarted,
+                          label: 'Mulai',
                           icon: Icons.arrow_forward_rounded,
-                          onTap: () => context.goNamed('home'),
+                          onTap: () => context.goNamed('login'),
+                        ),
+                        const SizedBox(height: 10),
+                        OutlinedPillButton(
+                          label: 'Buat akun',
+                          onTap: () => context.goNamed('register'),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: () async {
+                            // guest/returning handled by auth/settings flow
+                            context.goNamed('home');
+                          },
+                          child: const Text(
+                            'Lanjut sebagai tamu',
+                            style: TextStyle(color: C.gray, fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ]),
                     ),

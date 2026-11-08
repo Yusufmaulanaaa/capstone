@@ -26,11 +26,11 @@ class BookingModel {
   String get typeLabel {
     switch (type) {
       case ConsultationType.video:
-        return 'Video call';
+        return 'Panggilan video';
       case ConsultationType.voice:
-        return 'Voice call';
+        return 'Panggilan suara';
       case ConsultationType.inPerson:
-        return 'In person';
+        return 'Tatap muka';
     }
   }
 }

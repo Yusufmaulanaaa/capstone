@@ -226,6 +226,7 @@ class Composer extends StatelessWidget {
   final String hint;
   final ValueChanged<String> onSend;
   final VoidCallback? onSpeak;
+  final VoidCallback? onAttach;
 
   const Composer({
     super.key,
@@ -233,13 +234,19 @@ class Composer extends StatelessWidget {
     required this.hint,
     required this.onSend,
     this.onSpeak,
+    this.onAttach,
   });
 
-  Widget _dark(Widget child, {double size = 40}) => Container(
-        width: size,
-        height: size,
-        decoration: const BoxDecoration(color: C.ink, shape: BoxShape.circle),
-        child: child,
+  Widget _dark(Widget child, {double size = 40, VoidCallback? onTap}) =>
+      InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          decoration: const BoxDecoration(color: C.ink, shape: BoxShape.circle),
+          child: child,
+        ),
       );
 
   @override
@@ -265,7 +272,10 @@ class Composer extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Row(children: [
-            _dark(const Icon(Icons.add_rounded, color: C.white, size: 22)),
+            _dark(
+              const Icon(Icons.attach_file_rounded, color: C.white, size: 21),
+              onTap: onAttach,
+            ),
             const SizedBox(width: 8),
             Flexible(
               fit: FlexFit.loose,
@@ -295,7 +305,7 @@ class Composer extends StatelessWidget {
                                   size: 16, color: C.white),
                             ),
                             SizedBox(width: 6),
-                            Text('Speak',
+                            Text('Rekam',
                                 style: TextStyle(
                                     color: C.white,
                                     fontWeight: FontWeight.w600,
@@ -305,13 +315,12 @@ class Composer extends StatelessWidget {
                       ),
                     ),
                     Semantics(
-                      label: 'Send message',
+                      label: 'Kirim pesan',
                       button: true,
-                      child: InkWell(
-                        customBorder: const CircleBorder(),
+                      child: _dark(
+                        const Icon(Icons.near_me_rounded,
+                            color: C.white, size: 20),
                         onTap: () => onSend(controller.text),
-                        child: _dark(const Icon(Icons.near_me_rounded,
-                            color: C.white, size: 20)),
                       ),
                     ),
                   ],
@@ -339,7 +348,7 @@ class CopyableText extends StatelessWidget {
           Clipboard.setData(ClipboardData(text: text));
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Copied to clipboard'),
+              content: Text('Tersalin ke clipboard'),
               backgroundColor: C.ink,
               behavior: SnackBarBehavior.floating,
               duration: Duration(seconds: 2),
@@ -373,7 +382,7 @@ class HukumAppBar extends StatelessWidget {
           CircleBtn(
             icon: Icons.arrow_back_ios_new_rounded,
             onTap: onBack ?? () => Navigator.of(context).maybePop(),
-            semanticsLabel: 'Back',
+            semanticsLabel: 'Kembali',
           ),
           Expanded(
             child: FittedBox(

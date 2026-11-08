@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/colors.dart';
 import '../../../core/strings.dart';
 import '../../../core/providers.dart';
@@ -9,6 +10,7 @@ import '../../../data/models/chat_model.dart';
 import '../../../data/repositories/mock_repository.dart';
 import '../../../shared/widgets/widgets.dart';
 import '../../../shared/widgets/lawyer_card.dart';
+import '../services/document_scan_service.dart';
 import '../widgets/chat_bubbles.dart';
 import '../widgets/typing_indicator.dart';
 
@@ -23,7 +25,10 @@ class ChatScreen extends ConsumerStatefulWidget {
 class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _ctrl = TextEditingController();
   final ScrollController _scroll = ScrollController();
+  final ImagePicker _picker = ImagePicker();
+  final DocumentScanService _scanService = const DocumentScanService();
   Timer? _timer;
+  bool _processingDoc = false;
 
   @override
   void initState() {
@@ -37,14 +42,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (widget.initial == null) {
         ref.read(chatProvider.notifier).setMessages([
           ChatMessage(
-            text: 'I reported workplace harassment a week before I was fired. '
-                'Show me the best available lawyer.',
-            isUser: true,
-          ),
-          ChatMessage(
-            text: AppStrings.aiReply,
+            text:
+                'Halo! Saya asisten hukum HukumIn. Ceritakan kasus Anda (penipuan, penggelapan, pencurian, penganiayaan, atau pencemaran nama baik), atau unggah foto dokumen/bukti agar saya bantu analisis awal dengan fitur PCD.',
             isUser: false,
-            hasLawyers: true,
           ),
         ]);
       } else {
@@ -52,7 +52,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ChatMessage(text: widget.initial!, isUser: true),
             );
         ref.read(typingProvider.notifier).state = true;
-        _scheduleReply();
+        _scheduleReply(widget.initial!);
       }
     }
   }
@@ -65,18 +65,93 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
-  void _scheduleReply() {
+  void _scheduleReply(String contextText) {
     _timer?.cancel();
-    _timer = Timer(const Duration(milliseconds: 1600), () {
+    final lower = contextText.toLowerCase();
+    final needsLawyers = lower.contains('pengacara') ||
+        lower.contains('rekomendasi') ||
+        lower.contains('konsultasi') ||
+        lower.contains('penipuan') ||
+        lower.contains('penggelapan') ||
+        lower.contains('pencurian') ||
+        lower.contains('penganiayaan') ||
+        lower.contains('pencemaran');
+    _timer = Timer(const Duration(milliseconds: 1400), () {
       if (!mounted) return;
       ref.read(typingProvider.notifier).state = false;
+      final reply = _buildReply(lower);
       ref.read(chatProvider.notifier).addMessage(ChatMessage(
-            text: AppStrings.aiReply,
+            text: reply,
             isUser: false,
-            hasLawyers: true,
+            hasLawyers: needsLawyers,
           ));
       _toBottom();
     });
+  }
+
+  String _buildReply(String lower) {
+    if (lower.contains('ringkasan') || lower.contains('kronologi')) {
+      return 'Untuk ringkasan kasus, mohon siapkan:\n1) Waktu & tempat kejadian\n2) Pihak terlibat\n3) Kronologi singkat\n4) Bukti (chat, transfer, foto, saksi)\n5) Kerugian yang dialami.\n\nAnda bisa unggah foto dokumen/bukti lewat tombol lampiran agar saya bantu pratinjau kualitas dan kategorinya (PCD).';
+    }
+    if (lower.contains('checklist') || lower.contains('bukti')) {
+      return 'Checklist bukti awal yang disarankan:\n• Identitas pelapor/korban\n• Kronologi tertulis\n• Bukti digital (screenshot/chat) — simpan asli\n• Bukti transaksi/foto dokumen\n• Data saksi (jika ada)\n• Laporan/nomor aduan jika sudah dibuat\n\nUnggah gambar dokumen untuk analisis PCD (peningkatan kontras, binarisasi, estimasi kualitas bacaan).';
+    }
+    if (lower.contains('pencemaran')) {
+      return 'Kasus pencemaran nama baik biasanya memerlukan bukti digital (tautan, screenshot, waktu unggah, akun pelaku). Simpan bukti asli dan hindari konfrontasi publik. Saya bisa bantu analisis awal dokumen/screenshot Anda lewat fitur PCD dan merekomendasikan pengacara relevan.';
+    }
+    return 'Baik, saya catat informasi awal Anda. Untuk analisis yang lebih membantu, jelaskan kronologi singkat dan unggah foto dokumen/bukti (surat, bukti transfer, screenshot) bila ada. Sistem akan menjalankan pipeline PCD (grayscale, reduksi noise, threshold Otsu, binarisasi/penajaman) untuk pratinjau dokumen, lalu memberi rekomendasi langkah dan pengacara.';
+  }
+
+  Future<void> _pickDocument() async {
+    if (_processingDoc) return;
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _DocSourceSheet(),
+    );
+    if (source == null) return;
+    final picked = await _picker.pickImage(
+      source: source,
+      imageQuality: 92,
+      maxWidth: 2200,
+    );
+    if (picked == null) return;
+    setState(() => _processingDoc = true);
+    try {
+      final bytes = await picked.readAsBytes();
+      final scan = _scanService.process(fileName: picked.name, bytes: bytes);
+      if (!mounted) return;
+      ref.read(chatProvider.notifier).addMessage(ChatMessage(
+            text: 'Saya mengunggah dokumen: ${picked.name}',
+            isUser: true,
+            scan: scan,
+          ));
+      ref.read(typingProvider.notifier).state = true;
+      _toBottom();
+      _timer?.cancel();
+      _timer = Timer(const Duration(milliseconds: 1200), () {
+        if (!mounted) return;
+        ref.read(typingProvider.notifier).state = false;
+        ref.read(chatProvider.notifier).addMessage(ChatMessage(
+              text: scan.summary,
+              isUser: false,
+              scan: scan,
+              hasLawyers: true,
+            ));
+        setState(() => _processingDoc = false);
+        _toBottom();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _processingDoc = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gagal memproses dokumen: $e'),
+          backgroundColor: C.ink,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _send(String text) {
@@ -87,14 +162,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         .addMessage(ChatMessage(text: t, isUser: true));
     ref.read(typingProvider.notifier).state = true;
     _ctrl.clear();
-    _scheduleReply();
+    _scheduleReply(t);
     _toBottom();
   }
 
   void _toBottom() => WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!_scroll.hasClients) return;
         _scroll.animateTo(
-          _scroll.position.maxScrollExtent,
+          _scroll.position.maxScrollExtent + 120,
           duration: const Duration(milliseconds: 350),
           curve: Curves.easeOut,
         );
@@ -140,9 +215,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   children: [
                     for (final m in msgs) ...[
                       m.isUser
-                          ? UserBubble(text: m.text)
+                          ? UserBubble(text: m.text, scan: m.scan)
                           : AiBubble(
                               text: m.text,
+                              scan: m.scan,
                               onQuickReply: (reply) {
                                 _send(reply);
                               },
@@ -175,6 +251,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               controller: _ctrl,
               hint: AppStrings.whatsNext,
               onSend: _send,
+              onAttach: _processingDoc ? null : _pickDocument,
               onSpeak: () => _showVoiceSheet(context),
             ),
           ),
@@ -287,7 +364,7 @@ class _VoiceBottomSheetState extends State<_VoiceBottomSheet>
         ),
         const SizedBox(height: 20),
         Text(
-          _done ? 'Processing…' : AppStrings.listening,
+          _done ? 'Memproses suara…' : AppStrings.listening,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
@@ -310,4 +387,99 @@ class _VoiceBottomSheetState extends State<_VoiceBottomSheet>
       ]),
     );
   }
+}
+
+class _DocSourceSheet extends StatelessWidget {
+  const _DocSourceSheet();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: const BoxDecoration(
+          color: C.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+        child: SafeArea(
+          top: false,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: C.line,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const Text(
+              'Unggah Dokumen (PCD)',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: C.ink,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Pilih foto dokumen/bukti. Sistem akan melakukan praproses citra untuk analisis awal.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 13, color: C.gray, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            Row(children: [
+              Expanded(
+                child: _SourceAction(
+                  icon: Icons.photo_library_outlined,
+                  label: 'Galeri',
+                  onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _SourceAction(
+                  icon: Icons.photo_camera_outlined,
+                  label: 'Kamera',
+                  onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                ),
+              ),
+            ]),
+          ]),
+        ),
+      );
+}
+
+class _SourceAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _SourceAction(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: C.card,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(color: C.line),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: C.ink),
+                const SizedBox(height: 8),
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w700,
+                        color: C.ink)),
+              ],
+            ),
+          ),
+        ),
+      );
 }

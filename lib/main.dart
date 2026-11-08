@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme.dart';
 import 'core/colors.dart';
 import 'core/router.dart';
+import 'core/providers.dart';
+import 'l10n/app_localizations.dart';
 
-void main() => runApp(const ProviderScope(child: HukumInApp()));
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final container = ProviderContainer();
+  await container.read(settingsProvider.notifier).load();
+  runApp(UncontrolledProviderScope(
+      container: container, child: const HukumInApp()));
+}
 
 class HukumInApp extends ConsumerWidget {
   const HukumInApp({super.key});
@@ -12,12 +21,32 @@ class HukumInApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final settings = ref.watch(settingsProvider);
     return MaterialApp.router(
       title: 'HukumIn',
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
+      theme: buildLightTheme(),
+      darkTheme: buildLightTheme(),
+      themeMode: ThemeMode.light,
+      locale: settings.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       routerConfig: router,
-      builder: (context, child) => DeviceFrame(child: child!),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        final scaled = media.copyWith(
+          textScaler: TextScaler.linear(settings.textScale),
+        );
+        return MediaQuery(
+          data: scaled,
+          child: DeviceFrame(child: child ?? const SizedBox.shrink()),
+        );
+      },
     );
   }
 }

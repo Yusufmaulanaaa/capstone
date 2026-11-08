@@ -39,30 +39,41 @@ class _TypingIndicatorState extends State<TypingIndicator>
               borderRadius: BorderRadius.circular(22),
               border: Border.all(color: C.line),
             ),
-            child: AnimatedBuilder(
-              animation: _ctrl,
-              builder: (_, __) => Row(
-                mainAxisSize: MainAxisSize.min,
-                children: List.generate(3, (i) {
-                  final delay = i / 3;
-                  final v = ((_ctrl.value + delay) % 1.0);
-                  final offset = v < 0.5 ? v * 2 : 2 - v * 2;
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    child: Transform.translate(
-                      offset: Offset(0, -6 * offset),
-                      child: Container(
-                        width: 7,
-                        height: 7,
-                        decoration: const BoxDecoration(
-                          color: C.gray,
-                          shape: BoxShape.circle,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Asisten hukum sedang mengetik...',
+                  style: TextStyle(fontSize: 12, color: C.gray),
+                ),
+                const SizedBox(height: 8),
+                AnimatedBuilder(
+                  animation: _ctrl,
+                  builder: (_, __) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: List.generate(3, (i) {
+                      final delay = i / 3;
+                      final v = ((_ctrl.value + delay) % 1.0);
+                      final offset = v < 0.5 ? v * 2 : 2 - v * 2;
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 3),
+                        child: Transform.translate(
+                          offset: Offset(0, -6 * offset),
+                          child: Container(
+                            width: 7,
+                            height: 7,
+                            decoration: const BoxDecoration(
+                              color: C.gray,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                }),
-              ),
+                      );
+                    }),
+                  ),
+                ),
+              ],
             ),
           ),
           Positioned(

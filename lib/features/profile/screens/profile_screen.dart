@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/colors.dart';
+import '../../../core/providers.dart';
 import '../../../shared/widgets/widgets.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider);
+    final name = user?.name ?? 'Tamu';
+    final email = user?.email ?? 'Masuk untuk menyimpan data Anda';
+    final photo = user?.photoUrl ?? '';
+
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
@@ -60,39 +67,52 @@ class ProfileScreen extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: C.gold, width: 2),
                       ),
-                      child: const Avatar(
-                        name: 'Mike',
-                        url: 'https://i.pravatar.cc/150?img=68',
-                        size: 58,
-                      ),
+                      child: Avatar(name: name, url: photo, size: 58),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Mike',
-                            style: TextStyle(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
                               fontSize: 19,
                               fontWeight: FontWeight.w800,
                               color: C.white,
                             ),
                           ),
-                          SizedBox(height: 3),
+                          const SizedBox(height: 3),
                           Text(
-                            'mike@email.com',
-                            style: TextStyle(
+                            email,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
                                 fontSize: 13, color: Color(0xCCFFFFFF)),
                           ),
-                          SizedBox(height: 8),
-                          _Badge(label: 'Member HukumIn'),
+                          const SizedBox(height: 8),
+                          _Badge(
+                            label: user == null
+                                ? 'Belum masuk'
+                                : (user.provider == 'google'
+                                    ? 'Masuk dengan Google'
+                                    : 'Member HukumIn'),
+                          ),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
+              if (user == null) ...[
+                const SizedBox(height: 14),
+                BlackButton(
+                  label: 'Masuk / Daftar',
+                  onTap: () => context.pushNamed('login'),
+                ),
+              ],
               const SizedBox(height: 18),
               const Row(
                 children: [
@@ -129,6 +149,15 @@ class ProfileScreen extends StatelessWidget {
                 label: 'Bantuan',
                 onTap: () {},
               ),
+              if (user != null)
+                _Tile(
+                  icon: Icons.logout_rounded,
+                  label: 'Keluar',
+                  onTap: () {
+                    ref.read(authProvider.notifier).logout();
+                    context.goNamed('login');
+                  },
+                ),
             ],
           ),
         ),

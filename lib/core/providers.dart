@@ -1,8 +1,152 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/chat_model.dart';
 import '../data/models/lawyer_model.dart';
 import '../data/models/booking_model.dart';
+import '../data/models/user_model.dart';
 import '../data/repositories/mock_repository.dart';
+
+// ──────────────────────────────────────────────
+// App settings (persisted)
+// ──────────────────────────────────────────────
+class AppSettings {
+  final Locale locale;
+  final double textScale;
+  final ThemeMode themeMode;
+  final bool notifyChat;
+  final bool notifyBooking;
+  final bool notifyCase;
+  final bool firstLaunchSeen;
+  final bool guestMode;
+  const AppSettings({
+    this.locale = const Locale('id'),
+    this.textScale = 1.0,
+    this.themeMode = ThemeMode.light,
+    this.notifyChat = true,
+    this.notifyBooking = true,
+    this.notifyCase = true,
+    this.firstLaunchSeen = false,
+    this.guestMode = false,
+  });
+
+  AppSettings copyWith({
+    Locale? locale,
+    double? textScale,
+    ThemeMode? themeMode,
+    bool? notifyChat,
+    bool? notifyBooking,
+    bool? notifyCase,
+    bool? firstLaunchSeen,
+    bool? guestMode,
+  }) =>
+      AppSettings(
+        locale: locale ?? this.locale,
+        textScale: textScale ?? this.textScale,
+        themeMode: themeMode ?? this.themeMode,
+        notifyChat: notifyChat ?? this.notifyChat,
+        notifyBooking: notifyBooking ?? this.notifyBooking,
+        notifyCase: notifyCase ?? this.notifyCase,
+        firstLaunchSeen: firstLaunchSeen ?? this.firstLaunchSeen,
+        guestMode: guestMode ?? this.guestMode,
+      );
+}
+
+class SettingsNotifier extends StateNotifier<AppSettings> {
+  SettingsNotifier() : super(const AppSettings());
+  static const _kLang = 'settings.lang';
+  static const _kScale = 'settings.textScale';
+  static const _kTheme = 'settings.themeMode';
+  static const _kNChat = 'settings.notifyChat';
+  static const _kNBook = 'settings.notifyBooking';
+  static const _kNCase = 'settings.notifyCase';
+  static const _kFirst = 'settings.firstLaunchSeen';
+  static const _kGuest = 'settings.guestMode';
+
+  Future<void> load() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      final lang = p.getString(_kLang) ?? 'id';
+      final scale = (p.getDouble(_kScale) ?? 1.0).clamp(0.9, 1.3);
+      final theme = ThemeMode.light;
+      state = AppSettings(
+        locale: Locale(lang),
+        textScale: scale,
+        themeMode: theme,
+        notifyChat: p.getBool(_kNChat) ?? true,
+        notifyBooking: p.getBool(_kNBook) ?? true,
+        notifyCase: p.getBool(_kNCase) ?? true,
+        firstLaunchSeen: p.getBool(_kFirst) ?? false,
+        guestMode: p.getBool(_kGuest) ?? false,
+      );
+    } catch (_) {}
+  }
+
+  Future<void> _save() async {
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setString(_kLang, state.locale.languageCode);
+      await p.setDouble(_kScale, state.textScale);
+      await p.setInt(_kTheme, state.themeMode.index);
+      await p.setBool(_kNChat, state.notifyChat);
+      await p.setBool(_kNBook, state.notifyBooking);
+      await p.setBool(_kNCase, state.notifyCase);
+      await p.setBool(_kFirst, state.firstLaunchSeen);
+      await p.setBool(_kGuest, state.guestMode);
+    } catch (_) {}
+  }
+
+  Future<void> setLocale(Locale l) async {
+    state = state.copyWith(locale: l);
+    await _save();
+  }
+
+  Future<void> setTextScale(double v) async {
+    state = state.copyWith(textScale: v.clamp(0.9, 1.3));
+    await _save();
+  }
+
+  Future<void> setThemeMode(ThemeMode m) async {
+    state = state.copyWith(themeMode: m);
+    await _save();
+  }
+
+  Future<void> setNotifyChat(bool v) async {
+    state = state.copyWith(notifyChat: v);
+    await _save();
+  }
+
+  Future<void> setNotifyBooking(bool v) async {
+    state = state.copyWith(notifyBooking: v);
+    await _save();
+  }
+
+  Future<void> setNotifyCase(bool v) async {
+    state = state.copyWith(notifyCase: v);
+    await _save();
+  }
+
+  Future<void> markFirstLaunchSeen() async {
+    if (!state.firstLaunchSeen) {
+      state = state.copyWith(firstLaunchSeen: true);
+      await _save();
+    }
+  }
+
+  Future<void> setGuestMode(bool v) async {
+    state = state.copyWith(guestMode: v);
+    await _save();
+  }
+}
+
+final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>(
+  (_) => SettingsNotifier(),
+);
+
+final sharedPreferencesProvider =
+    FutureProvider<SharedPreferences>((ref) async {
+  return SharedPreferences.getInstance();
+});
 
 // ──────────────────────────────────────────────
 // Chat
@@ -178,3 +322,52 @@ final bookingDraftProvider =
 // ──────────────────────────────────────────────
 
 final chatSavedProvider = StateProvider<bool>((_) => false);
+
+// ──────────────────────────────────────────────
+// Auth (prototype/local state)
+// ──────────────────────────────────────────────
+
+class AuthNotifier extends StateNotifier<AppUser?> {
+  AuthNotifier() : super(null);
+
+  Future<void> register({
+    required String name,
+    required String email,
+    required String password,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 700));
+    state = AppUser(name: name.trim(), email: email.trim(), provider: 'email');
+  }
+
+  Future<void> login({
+    required String email,
+    required String password,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 700));
+    final e = email.trim();
+    final name = e.contains('@') ? e.split('@').first : 'Pengguna';
+    state = AppUser(
+      name:
+          name.isEmpty ? 'Pengguna' : name[0].toUpperCase() + name.substring(1),
+      email: e,
+      provider: 'email',
+    );
+  }
+
+  Future<void> signInWithGoogle() async {
+    // Prototype/mock: real Google Sign-In requires platform OAuth/Firebase config.
+    await Future.delayed(const Duration(milliseconds: 800));
+    state = const AppUser(
+      name: 'Google User',
+      email: 'google.user@hukumin.app',
+      provider: 'google',
+      photoUrl: 'https://i.pravatar.cc/150?img=68',
+    );
+  }
+
+  void logout() => state = null;
+}
+
+final authProvider = StateNotifierProvider<AuthNotifier, AppUser?>(
+  (_) => AuthNotifier(),
+);
