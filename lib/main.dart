@@ -11,6 +11,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final container = ProviderContainer();
   await container.read(settingsProvider.notifier).load();
+  await container.read(authProvider.notifier).restore();
   runApp(UncontrolledProviderScope(
       container: container, child: const HukumInApp()));
 }

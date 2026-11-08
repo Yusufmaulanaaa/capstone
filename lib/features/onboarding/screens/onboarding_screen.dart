@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/colors.dart';
+import '../../../core/providers.dart';
 import '../../../core/strings.dart';
 import '../../../shared/widgets/widgets.dart';
 
-class OnboardingScreen extends StatelessWidget {
+class OnboardingScreen extends ConsumerWidget {
   const OnboardingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, c) => SingleChildScrollView(
@@ -79,18 +81,25 @@ class OnboardingScreen extends StatelessWidget {
                         BlackButton(
                           label: 'Mulai',
                           icon: Icons.arrow_forward_rounded,
-                          onTap: () => context.goNamed('login'),
+                          onTap: () async {
+                            await ref.read(settingsProvider.notifier).markFirstLaunchSeen();
+                            if (context.mounted) context.goNamed('login');
+                          },
                         ),
                         const SizedBox(height: 10),
                         OutlinedPillButton(
                           label: 'Buat akun',
-                          onTap: () => context.goNamed('register'),
+                          onTap: () async {
+                            await ref.read(settingsProvider.notifier).markFirstLaunchSeen();
+                            if (context.mounted) context.goNamed('register');
+                          },
                         ),
                         const SizedBox(height: 8),
                         TextButton(
                           onPressed: () async {
-                            // guest/returning handled by auth/settings flow
-                            context.goNamed('home');
+                            await ref.read(settingsProvider.notifier).setGuestMode(true);
+                            await ref.read(settingsProvider.notifier).markFirstLaunchSeen();
+                            if (context.mounted) context.goNamed('home');
                           },
                           child: const Text(
                             'Lanjut sebagai tamu',

@@ -1,4 +1,5 @@
-import 'dart:typed_data';
+﻿import 'dart:typed_data';
+import 'lawyer_model.dart';
 
 class DocumentScanResult {
   final String fileName;
@@ -42,6 +43,7 @@ class ChatMessage {
   final bool hasLawyers;
   final DateTime createdAt;
   final DocumentScanResult? scan;
+  final List<LawyerModel> lawyers;
 
   ChatMessage({
     required this.text,
@@ -49,6 +51,7 @@ class ChatMessage {
     this.hasLawyers = false,
     DateTime? createdAt,
     this.scan,
+    this.lawyers = const <LawyerModel>[],
   }) : createdAt = createdAt ?? DateTime.now();
 }
 
@@ -64,6 +67,13 @@ class SavedChat {
     required this.preview,
     required this.savedAt,
   });
+
+  factory SavedChat.fromJson(Map<String, dynamic> j) => SavedChat(
+        id: '${j['id']}',
+        title: '${j['title'] ?? 'Percakapan'}',
+        preview: '${j['preview'] ?? j['updatedAt'] ?? ''}',
+        savedAt: DateTime.tryParse('${j['savedAt'] ?? j['updatedAt'] ?? j['createdAt']}') ?? DateTime.now(),
+      );
 }
 
 class NotificationModel {
@@ -80,4 +90,28 @@ class NotificationModel {
     required this.time,
     this.isRead = false,
   });
+
+  factory NotificationModel.fromJson(Map<String, dynamic> j) {
+    final created = DateTime.tryParse('${j['createdAt'] ?? ''}');
+    String rel = '${j['time'] ?? ''}';
+    if (rel.isEmpty && created != null) {
+      final d = DateTime.now().difference(created);
+      if (d.inMinutes < 60) {
+        rel = '${d.inMinutes}m lalu';
+      } else if (d.inHours < 24) {
+        rel = '${d.inHours}j lalu';
+      } else {
+        rel = '${created.day}/${created.month}/${created.year}';
+      }
+    }
+    return NotificationModel(
+      id: '${j['id']}',
+      title: '${j['title'] ?? ''}',
+      subtitle: '${j['subtitle'] ?? j['body'] ?? ''}',
+      time: rel,
+      isRead: j['isRead'] == true || j['read'] == true,
+    );
+  }
+
+  NotificationModel copyWith({bool? isRead}) => NotificationModel(id: id, title: title, subtitle: subtitle, time: time, isRead: isRead ?? this.isRead);
 }

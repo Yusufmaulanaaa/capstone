@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/lawyer_model.dart';
 import '../models/chat_model.dart';
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────
 // Lawyers
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────
 
 const List<LawyerModel> kLawyers = [
   LawyerModel(
@@ -141,10 +141,6 @@ const List<LawyerModel> kLawyers = [
   ),
 ];
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Topics / kasus
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
 const List<TopicModel> kTopics = [
   TopicModel(
       icon: Icons.phishing_outlined,
@@ -168,70 +164,28 @@ const List<TopicModel> kTopics = [
       sub: 'Ujaran/fitnah di medsos, bukti digital, somasi atau laporan.'),
 ];
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Notifications
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-List<NotificationModel> kNotifications = [
-  NotificationModel(
-    id: 'n1',
-    title: 'Konsultasi dikonfirmasi',
-    subtitle:
-        'Sesi Anda dengan Rizky Pratama, S.H. dijadwalkan besok pukul 10:00.',
-    time: '2m lalu',
-    isRead: false,
-  ),
-  NotificationModel(
-    id: 'n2',
-    title: 'Rekomendasi pengacara baru',
-    subtitle:
-        'AI menemukan 3 pengacara yang relevan untuk kasus penipuan/penggelapan.',
-    time: '1j lalu',
-    isRead: false,
-  ),
-  NotificationModel(
-    id: 'n3',
-    title: 'Dokumen siap',
-    subtitle: 'Ringkasan kasus AI Anda siap ditinjau.',
-    time: '3j lalu',
-    isRead: false,
-  ),
-  NotificationModel(
-    id: 'n4',
-    title: 'Pengingat',
-    subtitle:
-        'Konsultasi dengan Nadia Kusuma, S.H., M.H. dimulai 30 menit lagi.',
-    time: 'Kemarin',
-    isRead: true,
-  ),
-  NotificationModel(
-    id: 'n5',
-    title: 'Update kasus',
-    subtitle: 'Dimas Ardiansyah, S.H. telah meninjau dokumen kasus Anda.',
-    time: 'Kemarin',
-    isRead: true,
-  ),
-];
-
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Mock repository with Future.delayed
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+// Mock repositories (front-end only)
 class LawyerRepository {
   Future<List<LawyerModel>> fetchLawyers() async {
-    await Future.delayed(const Duration(milliseconds: 400));
+    await Future.delayed(const Duration(milliseconds: 250));
     return kLawyers;
   }
 
-  Future<LawyerModel> fetchLawyer(String id) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    return kLawyers.firstWhere((l) => l.id == id);
+  Future<LawyerModel?> findById(String id) async {
+    await Future.delayed(const Duration(milliseconds: 120));
+    try {
+      return kLawyers.firstWhere((l) => l.id == id);
+    } catch (_) {
+      return null;
+    }
   }
 }
 
 class NotificationRepository {
   Future<List<NotificationModel>> fetchNotifications() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return kNotifications;
+    await Future.delayed(const Duration(milliseconds: 200));
+    return List<NotificationModel>.from(kNotifications);
   }
 }
+
+final kNotifications = <NotificationModel>[];

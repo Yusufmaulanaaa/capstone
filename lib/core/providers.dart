@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../data/models/booking_model.dart';
 import '../data/models/chat_model.dart';
 import '../data/models/lawyer_model.dart';
-import '../data/models/booking_model.dart';
 import '../data/models/user_model.dart';
-import '../data/repositories/mock_repository.dart';
+import '../data/services/api_client.dart';
+import '../data/services/backend_api.dart';
+import '../data/services/legal_qa_service.dart';
+import '../data/services/session_store.dart';
 
-// ──────────────────────────────────────────────
-// App settings (persisted)
-// ──────────────────────────────────────────────
 class AppSettings {
   final Locale locale;
   final double textScale;
@@ -19,66 +19,57 @@ class AppSettings {
   final bool notifyCase;
   final bool firstLaunchSeen;
   final bool guestMode;
-  const AppSettings({
-    this.locale = const Locale('id'),
-    this.textScale = 1.0,
-    this.themeMode = ThemeMode.light,
-    this.notifyChat = true,
-    this.notifyBooking = true,
-    this.notifyCase = true,
-    this.firstLaunchSeen = false,
-    this.guestMode = false,
-  });
-
-  AppSettings copyWith({
-    Locale? locale,
-    double? textScale,
-    ThemeMode? themeMode,
-    bool? notifyChat,
-    bool? notifyBooking,
-    bool? notifyCase,
-    bool? firstLaunchSeen,
-    bool? guestMode,
-  }) =>
+  const AppSettings(
+      {this.locale = const Locale('id'),
+      this.textScale = 1.0,
+      this.themeMode = ThemeMode.light,
+      this.notifyChat = true,
+      this.notifyBooking = true,
+      this.notifyCase = true,
+      this.firstLaunchSeen = false,
+      this.guestMode = false});
+  AppSettings copyWith(
+          {Locale? locale,
+          double? textScale,
+          ThemeMode? themeMode,
+          bool? notifyChat,
+          bool? notifyBooking,
+          bool? notifyCase,
+          bool? firstLaunchSeen,
+          bool? guestMode}) =>
       AppSettings(
-        locale: locale ?? this.locale,
-        textScale: textScale ?? this.textScale,
-        themeMode: themeMode ?? this.themeMode,
-        notifyChat: notifyChat ?? this.notifyChat,
-        notifyBooking: notifyBooking ?? this.notifyBooking,
-        notifyCase: notifyCase ?? this.notifyCase,
-        firstLaunchSeen: firstLaunchSeen ?? this.firstLaunchSeen,
-        guestMode: guestMode ?? this.guestMode,
-      );
+          locale: locale ?? this.locale,
+          textScale: textScale ?? this.textScale,
+          themeMode: themeMode ?? this.themeMode,
+          notifyChat: notifyChat ?? this.notifyChat,
+          notifyBooking: notifyBooking ?? this.notifyBooking,
+          notifyCase: notifyCase ?? this.notifyCase,
+          firstLaunchSeen: firstLaunchSeen ?? this.firstLaunchSeen,
+          guestMode: guestMode ?? this.guestMode);
 }
 
 class SettingsNotifier extends StateNotifier<AppSettings> {
   SettingsNotifier() : super(const AppSettings());
-  static const _kLang = 'settings.lang';
-  static const _kScale = 'settings.textScale';
-  static const _kTheme = 'settings.themeMode';
-  static const _kNChat = 'settings.notifyChat';
-  static const _kNBook = 'settings.notifyBooking';
-  static const _kNCase = 'settings.notifyCase';
-  static const _kFirst = 'settings.firstLaunchSeen';
-  static const _kGuest = 'settings.guestMode';
-
+  static const _kLang = 'settings.lang',
+      _kScale = 'settings.textScale',
+      _kTheme = 'settings.themeMode',
+      _kNChat = 'settings.notifyChat',
+      _kNBook = 'settings.notifyBooking',
+      _kNCase = 'settings.notifyCase',
+      _kFirst = 'settings.firstLaunchSeen',
+      _kGuest = 'settings.guestMode';
   Future<void> load() async {
     try {
       final p = await SharedPreferences.getInstance();
-      final lang = p.getString(_kLang) ?? 'id';
-      final scale = (p.getDouble(_kScale) ?? 1.0).clamp(0.9, 1.3);
-      final theme = ThemeMode.light;
       state = AppSettings(
-        locale: Locale(lang),
-        textScale: scale,
-        themeMode: theme,
-        notifyChat: p.getBool(_kNChat) ?? true,
-        notifyBooking: p.getBool(_kNBook) ?? true,
-        notifyCase: p.getBool(_kNCase) ?? true,
-        firstLaunchSeen: p.getBool(_kFirst) ?? false,
-        guestMode: p.getBool(_kGuest) ?? false,
-      );
+          locale: Locale(p.getString(_kLang) ?? 'id'),
+          textScale: (p.getDouble(_kScale) ?? 1.0).clamp(0.9, 1.3),
+          themeMode: ThemeMode.light,
+          notifyChat: p.getBool(_kNChat) ?? true,
+          notifyBooking: p.getBool(_kNBook) ?? true,
+          notifyCase: p.getBool(_kNCase) ?? true,
+          firstLaunchSeen: p.getBool(_kFirst) ?? false,
+          guestMode: p.getBool(_kGuest) ?? false);
     } catch (_) {}
   }
 
@@ -140,170 +131,178 @@ class SettingsNotifier extends StateNotifier<AppSettings> {
 }
 
 final settingsProvider = StateNotifierProvider<SettingsNotifier, AppSettings>(
-  (_) => SettingsNotifier(),
-);
+    (_) => SettingsNotifier());
+final sharedPreferencesProvider = FutureProvider<SharedPreferences>(
+    (_) async => SharedPreferences.getInstance());
 
-final sharedPreferencesProvider =
-    FutureProvider<SharedPreferences>((ref) async {
-  return SharedPreferences.getInstance();
+// Backend wiring
+final sessionStoreProvider = Provider<SessionStore>((_) => SessionStore());
+final apiClientProvider =
+    Provider<ApiClient>((ref) => ApiClient(ref.watch(sessionStoreProvider)));
+final authRepositoryProvider = Provider<AuthRepository>((ref) => AuthRepository(
+    ref.watch(apiClientProvider), ref.watch(sessionStoreProvider)));
+final lawyersApiProvider =
+    Provider<LawyersApi>((ref) => LawyersApi(ref.watch(apiClientProvider)));
+final chatApiProvider =
+    Provider<ChatApi>((ref) => ChatApi(ref.watch(apiClientProvider)));
+final legalQaProvider = Provider<LegalQaService>((ref) => LegalQaService());
+final bookingsApiProvider =
+    Provider<BookingsApi>((ref) => BookingsApi(ref.watch(apiClientProvider)));
+final notificationsApiProvider = Provider<NotificationsApi>(
+    (ref) => NotificationsApi(ref.watch(apiClientProvider)));
+
+final lawyersProvider = FutureProvider.autoDispose<List<LawyerModel>>(
+    (ref) => ref.watch(lawyersApiProvider).fetch());
+final lawyerDetailProvider = FutureProvider.autoDispose
+    .family<LawyerModel, String>(
+        (ref, id) => ref.watch(lawyersApiProvider).detail(id));
+final myBookingsProvider =
+    FutureProvider.autoDispose<List<BookingModel>>((ref) async {
+  final user = ref.watch(authProvider);
+  if (user == null) return const <BookingModel>[];
+  return ref.watch(bookingsApiProvider).list();
+});
+final bookingSlotsProvider = FutureProvider.autoDispose
+    .family<List<Map<String, dynamic>>, ({String lawyerId, String date})>(
+        (ref, q) => ref.watch(bookingsApiProvider).slots(q.lawyerId, q.date));
+final conversationsProvider =
+    FutureProvider.autoDispose<List<SavedChat>>((ref) async {
+  final user = ref.watch(authProvider);
+  if (user == null) return const <SavedChat>[];
+  return ref.watch(chatApiProvider).conversations();
 });
 
-// ──────────────────────────────────────────────
 // Chat
-// ──────────────────────────────────────────────
-
-class ChatNotifier extends StateNotifier<List<ChatMessage>> {
-  ChatNotifier() : super([]);
-
-  void addMessage(ChatMessage msg) => state = [...state, msg];
-
-  void setMessages(List<ChatMessage> msgs) => state = msgs;
+class ChatState {
+  final List<ChatMessage> messages;
+  final String? conversationId;
+  const ChatState({this.messages = const [], this.conversationId});
+  ChatState copyWith(
+          {List<ChatMessage>? messages,
+          String? conversationId,
+          bool clearConversation = false}) =>
+      ChatState(
+          messages: messages ?? this.messages,
+          conversationId: clearConversation
+              ? null
+              : (conversationId ?? this.conversationId));
 }
 
-final chatProvider = StateNotifierProvider<ChatNotifier, List<ChatMessage>>(
-  (_) => ChatNotifier(),
-);
+class ChatNotifier extends StateNotifier<ChatState> {
+  ChatNotifier() : super(const ChatState());
+  void setMessages(List<ChatMessage> msgs,
+          {String? conversationId, bool clearConversation = false}) =>
+      state = state.copyWith(
+          messages: msgs,
+          conversationId: conversationId,
+          clearConversation: clearConversation);
+  void addMessage(ChatMessage msg) =>
+      state = state.copyWith(messages: [...state.messages, msg]);
+  void newConversation() => state = const ChatState();
+}
 
+final chatProvider =
+    StateNotifierProvider<ChatNotifier, ChatState>((_) => ChatNotifier());
 final typingProvider = StateProvider<bool>((_) => false);
 
-// ──────────────────────────────────────────────
-// Saved chats & lawyers
-// ──────────────────────────────────────────────
-
+// Saved (local favorites)
 final savedChatsProvider =
     StateNotifierProvider<SavedChatsNotifier, List<SavedChat>>(
-  (_) => SavedChatsNotifier(),
-);
+        (_) => SavedChatsNotifier());
 
 class SavedChatsNotifier extends StateNotifier<List<SavedChat>> {
-  SavedChatsNotifier()
-      : super([
-          SavedChat(
-            id: 'sc1',
-            title: 'Wrongful termination case',
-            preview: 'AI found 3 lawyers for your employment issue.',
-            savedAt: DateTime.now().subtract(const Duration(hours: 2)),
-          ),
-          SavedChat(
-            id: 'sc2',
-            title: 'Landlord deposit dispute',
-            preview: 'Here are tenant-rights lawyers in Austin.',
-            savedAt: DateTime.now().subtract(const Duration(days: 1)),
-          ),
-        ]);
-
+  SavedChatsNotifier() : super(const []);
   void remove(String id) => state = state.where((s) => s.id != id).toList();
-
-  void add(SavedChat chat) => state = [chat, ...state];
+  void add(SavedChat chat) {
+    if (state.any((s) => s.id == chat.id)) return;
+    state = [chat, ...state];
+  }
 }
 
 final savedLawyersProvider =
     StateNotifierProvider<SavedLawyersNotifier, List<LawyerModel>>(
-  (_) => SavedLawyersNotifier(),
-);
+        (_) => SavedLawyersNotifier());
 
 class SavedLawyersNotifier extends StateNotifier<List<LawyerModel>> {
   SavedLawyersNotifier() : super([]);
-
   void toggle(LawyerModel lawyer) {
-    if (state.any((l) => l.id == lawyer.id)) {
-      state = state.where((l) => l.id != lawyer.id).toList();
-    } else {
-      state = [lawyer, ...state];
-    }
+    state = state.any((l) => l.id == lawyer.id)
+        ? state.where((l) => l.id != lawyer.id).toList()
+        : [lawyer, ...state];
   }
 
   void remove(String id) => state = state.where((l) => l.id != id).toList();
-
   bool isSaved(String id) => state.any((l) => l.id == id);
 }
 
-// ──────────────────────────────────────────────
-// Notifications
-// ──────────────────────────────────────────────
-
+// Notifications (backend-backed)
 final notificationsProvider =
     StateNotifierProvider<NotificationsNotifier, List<NotificationModel>>(
-  (_) => NotificationsNotifier(),
-);
+        (ref) => NotificationsNotifier(ref));
 
 class NotificationsNotifier extends StateNotifier<List<NotificationModel>> {
-  NotificationsNotifier() : super([...kNotifications]);
+  final Ref ref;
+  NotificationsNotifier(this.ref) : super(const []);
+  int get unreadCount => state.where((n) => !n.isRead).length;
+  Future<void> refresh() async {
+    final user = ref.read(authProvider);
+    if (user == null) {
+      state = const [];
+      return;
+    }
+    try {
+      final res = await ref.read(notificationsApiProvider).list();
+      state = res.items;
+    } catch (_) {}
+  }
 
-  void markAllRead() {
-    state = state
-        .map((n) => NotificationModel(
-              id: n.id,
-              title: n.title,
-              subtitle: n.subtitle,
-              time: n.time,
-              isRead: true,
-            ))
-        .toList();
+  Future<void> markAllRead() async {
+    state = [for (final n in state) n.copyWith(isRead: true)];
+    if (ref.read(authProvider) != null) {
+      try {
+        await ref.read(notificationsApiProvider).readAll();
+      } catch (_) {}
+    }
   }
 
   void markRead(String id) {
-    state = state.map((n) {
-      if (n.id == id) {
-        return NotificationModel(
-          id: n.id,
-          title: n.title,
-          subtitle: n.subtitle,
-          time: n.time,
-          isRead: true,
-        );
-      }
-      return n;
-    }).toList();
+    state = [for (final n in state) n.id == id ? n.copyWith(isRead: true) : n];
   }
-
-  int get unreadCount => state.where((n) => !n.isRead).length;
 }
 
-final unreadCountProvider = Provider<int>((ref) {
-  return ref.watch(notificationsProvider.notifier).unreadCount;
-});
+final unreadCountProvider = Provider<int>(
+    (ref) => ref.watch(notificationsProvider).where((n) => !n.isRead).length);
 
-// ──────────────────────────────────────────────
 // Booking draft
-// ──────────────────────────────────────────────
-
 class BookingDraft {
   final LawyerModel? lawyer;
   final DateTime? date;
   final String? time;
   final ConsultationType type;
   final String note;
-
-  const BookingDraft({
-    this.lawyer,
-    this.date,
-    this.time,
-    this.type = ConsultationType.video,
-    this.note = '',
-  });
-
-  BookingDraft copyWith({
-    LawyerModel? lawyer,
-    DateTime? date,
-    String? time,
-    ConsultationType? type,
-    String? note,
-  }) =>
+  const BookingDraft(
+      {this.lawyer,
+      this.date,
+      this.time,
+      this.type = ConsultationType.video,
+      this.note = ''});
+  BookingDraft copyWith(
+          {LawyerModel? lawyer,
+          DateTime? date,
+          String? time,
+          ConsultationType? type,
+          String? note}) =>
       BookingDraft(
-        lawyer: lawyer ?? this.lawyer,
-        date: date ?? this.date,
-        time: time ?? this.time,
-        type: type ?? this.type,
-        note: note ?? this.note,
-      );
-
+          lawyer: lawyer ?? this.lawyer,
+          date: date ?? this.date,
+          time: time ?? this.time,
+          type: type ?? this.type,
+          note: note ?? this.note);
   bool get isComplete => date != null && time != null;
 }
 
 class BookingDraftNotifier extends StateNotifier<BookingDraft> {
   BookingDraftNotifier() : super(const BookingDraft());
-
   void setLawyer(LawyerModel l) => state = state.copyWith(lawyer: l);
   void setDate(DateTime d) => state = state.copyWith(date: d);
   void setTime(String t) => state = state.copyWith(time: t);
@@ -314,60 +313,53 @@ class BookingDraftNotifier extends StateNotifier<BookingDraft> {
 
 final bookingDraftProvider =
     StateNotifierProvider<BookingDraftNotifier, BookingDraft>(
-  (_) => BookingDraftNotifier(),
-);
-
-// ──────────────────────────────────────────────
-// Chat saved toggle
-// ──────────────────────────────────────────────
-
+        (_) => BookingDraftNotifier());
 final chatSavedProvider = StateProvider<bool>((_) => false);
 
-// ──────────────────────────────────────────────
-// Auth (prototype/local state)
-// ──────────────────────────────────────────────
-
+// Auth
 class AuthNotifier extends StateNotifier<AppUser?> {
-  AuthNotifier() : super(null);
-
-  Future<void> register({
-    required String name,
-    required String email,
-    required String password,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 700));
-    state = AppUser(name: name.trim(), email: email.trim(), provider: 'email');
+  final Ref ref;
+  AuthNotifier(this.ref) : super(null);
+  Future<void> restore() async {
+    try {
+      state = await ref.read(authRepositoryProvider).restore();
+    } catch (_) {
+      state = null;
+    }
+    if (state != null) {
+      await ref.read(notificationsProvider.notifier).refresh();
+    }
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
-    await Future.delayed(const Duration(milliseconds: 700));
-    final e = email.trim();
-    final name = e.contains('@') ? e.split('@').first : 'Pengguna';
-    state = AppUser(
-      name:
-          name.isEmpty ? 'Pengguna' : name[0].toUpperCase() + name.substring(1),
-      email: e,
-      provider: 'email',
-    );
+  Future<void> register(
+      {required String name,
+      required String email,
+      required String password}) async {
+    state = await ref
+        .read(authRepositoryProvider)
+        .register(name: name, email: email, password: password);
+    await ref.read(notificationsProvider.notifier).refresh();
+  }
+
+  Future<void> login({required String email, required String password}) async {
+    state = await ref
+        .read(authRepositoryProvider)
+        .login(email: email, password: password);
+    await ref.read(notificationsProvider.notifier).refresh();
   }
 
   Future<void> signInWithGoogle() async {
-    // Prototype/mock: real Google Sign-In requires platform OAuth/Firebase config.
-    await Future.delayed(const Duration(milliseconds: 800));
-    state = const AppUser(
-      name: 'Google User',
-      email: 'google.user@hukumin.app',
-      provider: 'google',
-      photoUrl: 'https://i.pravatar.cc/150?img=68',
-    );
+    throw ApiException(
+        'Login Google belum dikonfigurasi. Silakan masuk dengan email dan kata sandi.');
   }
 
-  void logout() => state = null;
+  Future<void> logout() async {
+    await ref.read(authRepositoryProvider).logout();
+    state = null;
+    ref.read(chatProvider.notifier).newConversation();
+    ref.read(notificationsProvider.notifier).state = const [];
+  }
 }
 
-final authProvider = StateNotifierProvider<AuthNotifier, AppUser?>(
-  (_) => AuthNotifier(),
-);
+final authProvider =
+    StateNotifierProvider<AuthNotifier, AppUser?>((ref) => AuthNotifier(ref));
